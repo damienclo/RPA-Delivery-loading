@@ -174,14 +174,14 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     
     While (CountSAP < Nb_Of_Rows_SAP)
     
-        shopPosition = in_array(arrayLastTime, "WNAM-IXE1") '######## A PASSER EN VARIABLE. RECUPERATION SUR SAP LIGNE A ET B
-        lastUpdateTime = CDate(Right(arrayLastTime(2, shopPosition), 4) & "/" & Mid(arrayLastTime(2, shopPosition), 4, 2) & "/" & Left(arrayLastTime(2, shopPosition), 2)) + arrayLastTime(3, shopPosition)
-        newUpdateTime = CDate(Right(arrayNewTime(2, shopPosition), 4) & "/" & Mid(arrayNewTime(2, shopPosition), 4, 2) & "/" & Left(arrayNewTime(2, shopPosition), 2)) + arrayNewTime(3, shopPosition)
-
+        shopPosition = in_array(arrayLastTime, sapWS.Range("A" & CountSAP).value & "-" & sapWS.Range("B" & CountSAP).value)
+        lastUpdateTime = arrayLastTime(3, shopPosition)
+        newUpdateTime = arrayNewTime(3, shopPosition)
         deliveryLineTime = Application.WorksheetFunction.Text(sapWS.Range("U" & CountSAP), "dd/mm/yyyy") & " " & Application.WorksheetFunction.Text(sapWS.Range("V" & CountSAP), "hh:mm:ss")
+        
         deliveryTarget = deliveryLineTime > lastUpdateTime
-        arrayNewTime(2, getPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "dd.mm.yyyy")
-        arrayNewTime(3, getPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "hh:mm:ss")
+        arrayNewTime(2, shopPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "dd.mm.yyyy")
+        arrayNewTime(3, shopPosition) = WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime)
           
     
         While (CountODOO <= Nb_Of_Rows_ODOO And ((Not found) Or (found And missingQt = False)))
@@ -285,7 +285,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     '#######################################
     '## Actualisation dates et heures     ##
     '#######################################
-    timeWS.Range("A6") = arrayNewTime
+    timeWS.Range("A1").CurrentRegion = arrayNewTime
     
     
     exportWB.SaveAs exportPath
@@ -310,3 +310,5 @@ handling:
     CheckForErrors = -1
 clean:
 End Function
+
+
