@@ -1,16 +1,39 @@
 Sub test()
 
+    Main "C:\Users\damie\Google Drive\20 DPT Consulting\11 Ores\21000000# RPA\20220307 WTAR-IEE1 Erreur receptions en double\Run 5\ODOO.XLS" _
+    , "C:\Users\damie\Google Drive\20 DPT Consulting\11 Ores\21000000# RPA\20220307 WTAR-IEE1 Erreur receptions en double\Run 5\SAP.XLSX" _
+    , "C:\Users\damie\Google Drive\20 DPT Consulting\11 Ores\21000000# RPA\20220307 WTAR-IEE1 Erreur receptions en double\Run 5\test.xlsx" _
+    , "C:\Users\damie\Google Drive\20 DPT Consulting\11 Ores\21000000# RPA\20220307 WTAR-IEE1 Erreur receptions en double\Run 5\report.xlsx" _
+    , "C:\Users\damie\Google Drive\20 DPT Consulting\11 Ores\21000000# RPA\20220307 WTAR-IEE1 Erreur receptions en double\Run 5\report.xlsx"
+
+End Sub
+
+Sub testManual()
+
     Dim mainDir As String
     mainDir = Application.ActiveWorkbook.Path & "\"
     
     Main mainDir & "\ODOO.XLS" _
     , mainDir & "SAP.XLSX" _
     , mainDir & "test.xlsx" _
-    , mainDir & "report.xlsx"
+    , mainDir & "report.xlsx" _
+    , mainDir & "time.xlsx"
 
 End Sub
 
-Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String)
+Function in_array(TheArray, my_value)
+Dim feedback As Integer
+in_array = False
+    For i = LBound(TheArray) To UBound(TheArray)
+        For j = LBound(TheArray, 2) To UBound(TheArray, 2)
+            If TheArray(i, j) = my_value Then
+               in_array = j
+               End If
+         Next j
+    Next i
+End Function
+
+Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String, timePath As String)
     Application.DisplayAlerts = False
     
     'General Variables
@@ -18,11 +41,15 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Dim reportWB As Workbook
     Dim odooWB As Workbook
     Dim sapWB As Workbook
+    Dim timeWB As Workbook
     
     Dim exportWS As Worksheet
     Dim reportWS As Worksheet
     Dim odooWS As Worksheet
     Dim sapWS As Worksheet
+    Dim timeWS As Worksheet
+    
+    
     
     'Exceptions
     Dim ex1 As String
@@ -34,15 +61,17 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     'Prepare files, create and open them
     Set exportWB = Workbooks.Add
     Set reportWB = Workbooks.Add
+    Set timeWB = Workbooks.Add
+    
     Set odooWB = Workbooks.Open(odooPath)
     Set sapWB = Workbooks.Open(sapPath)
-
+    Set timeWB = Workbooks.Open(timePath)
     
     Set exportWS = exportWB.Worksheets(1)
     Set reportWS = reportWB.Worksheets(1)
     Set odooWS = odooWB.Sheets(1)
-    
     Set sapWS = sapWB.Sheets(1)
+    Set timeWS = timeWB.Sheets(1)
     
     'Add headers for the EXPORT
     exportWS.Range("A1").value = "ID Externe"
@@ -73,14 +102,25 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Dim Nb_Of_Rows_ODOO As Integer
     Dim CountSAP As Integer
     Dim CountODOO As Integer
-    Dim MaxDrop As Integer '###############IDEA 3
+    Dim MaxDrop As Integer
     Dim Row As Integer
     Dim refID As String
     Dim extID As String
+    Dim NewLastTime As Date
+    Dim arrayLastTime() As Variant
+    Dim arrayNewTime() As Variant
     
     CountSAP = 2
     CountODOO = 2
     Row = 2
+    
+    '################################################################
+    '## Collecte de la dernière heure de chargement sur le magasin ##
+    '################################################################
+    
+    arrayLastTime = timeWS.Range("A1").CurrentRegion.value
+    arrayNewTime = timeWS.Range("A1").CurrentRegion.value
+    
     
     '#################################
     '## Chargement des données ODOO ##
@@ -117,8 +157,12 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     CountODOO = 2
     foundPosition = 2
     Dim found As Boolean
+    Dim deliveryTarget As Boolean
     Dim missingQt As Boolean
     Dim countREPORT As Integer
+    Dim deliveryLineTime As Date
+    Dim lastUpdateTime As Date
+    Dim shopPosition As Integer
     countREPORT = 2
     found = False
     
@@ -129,9 +173,21 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     '#########################################
     
     While (CountSAP < Nb_Of_Rows_SAP)
+    
+        shopPosition = in_array(arrayLastTime, "WNAM-IXE1") '######## A PASSER EN VARIABLE. RECUPERATION SUR SAP LIGNE A ET B
+        lastUpdateTime = CDate(Right(arrayLastTime(2, shopPosition), 4) & "/" & Mid(arrayLastTime(2, shopPosition), 4, 2) & "/" & Left(arrayLastTime(2, shopPosition), 2)) + arrayLastTime(3, shopPosition)
+        newUpdateTime = CDate(Right(arrayNewTime(2, shopPosition), 4) & "/" & Mid(arrayNewTime(2, shopPosition), 4, 2) & "/" & Left(arrayNewTime(2, shopPosition), 2)) + arrayNewTime(3, shopPosition)
+
+        deliveryLineTime = Application.WorksheetFunction.Text(sapWS.Range("U" & CountSAP), "dd/mm/yyyy") & " " & Application.WorksheetFunction.Text(sapWS.Range("V" & CountSAP), "hh:mm:ss")
+        deliveryTarget = deliveryLineTime > lastUpdateTime
+        arrayNewTime(2, getPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "dd.mm.yyyy")
+        arrayNewTime(3, getPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "hh:mm:ss")
+          
+    
         While (CountODOO <= Nb_Of_Rows_ODOO And ((Not found) Or (found And missingQt = False)))
-            If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) Then
-            
+            If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
+            And deliveryTarget = True Then
+                
                 If (InStr(1, "" & exportWS.Range("E" & CountODOO).value, sapWS.Range("C" & CountSAP).value) > 0) _
                 And (exportWS.Range("F" & CountODOO).value = CLng(sapWS.Range("D" & CountSAP).value)) _
                 And sapWS.Range("G" & CountSAP).value <> "" Then
@@ -161,7 +217,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
             CountODOO = CountODOO + 1
         Wend
         
-        If (found = False) Then
+        If (found = False And deliveryTarget = True) Then
             '#########################################
             '## Mis à jour du rapport pour ex2      ##
             '#########################################
@@ -171,7 +227,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
             reportWS.Range("D" & countREPORT).value = sapWS.Range("C" & CountSAP).value
             reportWS.Range("E" & countREPORT).value = sapWS.Range("G" & CountSAP).value
             countREPORT = countREPORT + 1
-        ElseIf (sapWS.Range("G" & CountSAP).value > 0) Then
+        ElseIf (sapWS.Range("G" & CountSAP).value > 0 And deliveryTarget = True) Then
             '#########################################
             '## Mis à jour du rapport pour ex1      ##
             '#########################################
@@ -226,12 +282,19 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     exportWS.Range("$G$2:$G$" & Nb_Of_Rows_ODOO).SpecialCells(xlCellTypeVisible).EntireRow.Delete
     exportWS.AutoFilterMode = False
 
+    '#######################################
+    '## Actualisation dates et heures     ##
+    '#######################################
+    timeWS.Range("A6") = arrayNewTime
+    
+    
     exportWB.SaveAs exportPath
     reportWB.SaveAs reportPath
     exportWB.Close False
     reportWB.Close False
     odooWB.Close False
     sapWB.Close False
+    timeWB.Close True
     
     Application.DisplayAlerts = True
 End Sub
