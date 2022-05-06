@@ -5,10 +5,10 @@ Sub launchOnLocalDrive()
     
     Main mainDir & "\ODOO.XLS" _
     , mainDir & "SAP.XLSX" _
-    , mainDir & "incomeForOdoo.xlsx" _
-    , mainDir & "executionReport.xlsx" _
+    , mainDir & "99 incomeForOdoo.xlsx" _
+    , mainDir & "99 executionReport.xlsx" _
     , mainDir & "centralTime.xlsx" _
-    , mainDir & "tempTime.xlsx"
+    , mainDir & "99 tempTime.xlsx"
 
 End Sub
 
@@ -279,6 +279,8 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     '#######################################
     tempScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
     
+    'Si tests local, sauvegarde sur le central schedule. Si fonctionnement avec RPA, ligne à commenter
+    'centralScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
     
     exportWB.SaveAs exportPath
     reportWB.SaveAs reportPath
@@ -287,7 +289,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     reportWB.Close False
     odooWB.Close False
     sapWB.Close False
-    centralScheduleWB.Close False
+    centralScheduleWB.Close False 'True si TESTS local, False si fonctionnement avec RPA
     tempScheduleWB.Close False
     
     Application.DisplayAlerts = True
