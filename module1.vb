@@ -61,6 +61,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Set exportWS = exportWB.Worksheets(1)
     Set reportWS = reportWB.Worksheets(1)
     Set tempScheduleWS = tempScheduleWB.Worksheets(1)
+    tempScheduleWS.name = "Dates"
     Set odooWS = odooWB.Sheets(1)
     Set sapWS = sapWB.Sheets(1)
     Set centralScheduleWS = centralScheduleWB.Sheets(1)
@@ -278,6 +279,8 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     '## Actualisation dates et heures     ##
     '#######################################
     tempScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
+    'Mise en forme de la date / heure => jj/mm/aaaa hh:mm
+    tempScheduleWS.Range("A3").EntireRow.NumberFormat = "m/d/yyyy h:mm"
     
     'Si tests local, sauvegarde sur le central schedule. Si fonctionnement avec RPA, ligne à commenter
     'centralScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
