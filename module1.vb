@@ -2,13 +2,16 @@ Sub launchOnLocalDrive()
 
     Dim mainDir As String
     mainDir = Application.ActiveWorkbook.Path & "\"
-    
-    Main mainDir & "\ODOO.XLS" _
+    Dim feedBack as Boolean
+
+    feedBack = Main mainDir & "\ODOO.XLS" _
     , mainDir & "SAP.XLSX" _
     , mainDir & "99 incomeForOdoo.xlsx" _
     , mainDir & "99 executionReport.xlsx" _
     , mainDir & "centralTime.xlsx" _
     , mainDir & "99 tempTime.xlsx"
+
+    MsgBox(feedBack)
 
 End Sub
 
@@ -24,7 +27,7 @@ Sub test()
 End Sub
 
 
-Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String, centralSchedulePath As String, tempSchedulePath As String)
+Function Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String, centralSchedulePath As String, tempSchedulePath As String) As Boolean
     Application.DisplayAlerts = False
     
     'General Variables
@@ -102,6 +105,8 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Dim NewLastTime As Date
     Dim arrayLastTime() As Variant
     Dim arrayNewTime() As Variant
+    Dim activityCheckecker as Boolean
+    activityCheckecker = False
     
     CountSAP = 2
     CountODOO = 2
@@ -181,6 +186,8 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
             If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
             And deliveryTarget = True Then
                 
+                activityCheckecker = True
+
                 If (InStr(1, "" & exportWS.Range("E" & CountODOO).value, sapWS.Range("C" & CountSAP).value) > 0) _
                 And (exportWS.Range("F" & CountODOO).value = CLng(sapWS.Range("D" & CountSAP).value)) _
                 And sapWS.Range("G" & CountSAP).value <> "" Then
@@ -296,7 +303,10 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     tempScheduleWB.Close False
     
     Application.DisplayAlerts = True
-End Sub
+
+    Main = activityCheckecker
+
+End Function
 
 Function CheckForErrors(value As String) As Long
 
