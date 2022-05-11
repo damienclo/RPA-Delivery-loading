@@ -2,16 +2,16 @@ Sub launchOnLocalDrive()
 
     Dim mainDir As String
     mainDir = Application.ActiveWorkbook.Path & "\"
-    Dim feedBack as Boolean
+    Dim feedback As Boolean
 
-    feedBack = Main mainDir & "\ODOO.XLS" _
+    feedback = Main(mainDir & "\ODOO.XLS" _
     , mainDir & "SAP.XLSX" _
     , mainDir & "99 incomeForOdoo.xlsx" _
     , mainDir & "99 executionReport.xlsx" _
     , mainDir & "centralTime.xlsx" _
-    , mainDir & "99 tempTime.xlsx"
+    , mainDir & "99 tempTime.xlsx")
 
-    MsgBox(feedBack)
+    MsgBox (feedback)
 
 End Sub
 
@@ -64,7 +64,7 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
     Set exportWS = exportWB.Worksheets(1)
     Set reportWS = reportWB.Worksheets(1)
     Set tempScheduleWS = tempScheduleWB.Worksheets(1)
-    tempScheduleWS.name = "Dates"
+    tempScheduleWS.Name = "Dates"
     Set odooWS = odooWB.Sheets(1)
     Set sapWS = sapWB.Sheets(1)
     Set centralScheduleWS = centralScheduleWB.Sheets(1)
@@ -105,7 +105,7 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
     Dim NewLastTime As Date
     Dim arrayLastTime() As Variant
     Dim arrayNewTime() As Variant
-    Dim activityCheckecker as Boolean
+    Dim activityCheckecker As Boolean
     activityCheckecker = False
     
     CountSAP = 2
@@ -332,4 +332,6 @@ in_array = False
          Next j
     Next i
 End Function
+
+
 
