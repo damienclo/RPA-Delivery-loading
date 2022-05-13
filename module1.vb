@@ -186,6 +186,9 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
             If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
             And deliveryTarget = True Then
                 
+                'On indique sur la ligne de livraison du fichier SAP que l'article est une nouvelle livraison
+                sapWS.Range("W" & CountSAP) = "Nouvelle livraison sur le magasin"
+
                 activityCheckecker = True
 
                 If (InStr(1, "" & exportWS.Range("E" & CountODOO).value, sapWS.Range("C" & CountSAP).value) > 0) _
@@ -213,6 +216,11 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
                     found = True
                     foundPosition = CountODOO
                 End If
+            ElseIf (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
+            And deliveryTarget = False Then
+                'On indique sur la ligne de livraison du fichier SAP que l'article appartient à une livraison précédente
+                sapWS.Range("W" & CountSAP) = "Livraison présente sur rapport précédent"
+
             End If
             CountODOO = CountODOO + 1
         Wend
@@ -292,13 +300,21 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
     'Si tests local, sauvegarde sur le central schedule. Si fonctionnement avec RPA, ligne à commenter
     'centralScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
     
+    
+    '###############################################
+    '## Complément d'information sur fihiers SAP   #
+    '###############################################
+    
+    sapWS.Range("W1").value = "Type de livraison"
+    
+    
     exportWB.SaveAs exportPath
     reportWB.SaveAs reportPath
     tempScheduleWB.SaveAs tempSchedulePath
     exportWB.Close False
     reportWB.Close False
     odooWB.Close False
-    sapWB.Close False
+    sapWB.Close True
     centralScheduleWB.Close False 'True si TESTS local, False si fonctionnement avec RPA
     tempScheduleWB.Close False
     
