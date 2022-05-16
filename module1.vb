@@ -181,6 +181,9 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
         arrayNewTime(2, shopPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "dd.mm.yyyy")
         arrayNewTime(3, shopPosition) = WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime)
           
+        if sapWS.Range("X" & CountSAP).value = 0 Then   
+            sapWS.Range("X" & CountSAP).value = sapWS.Range("G" & CountSAP).value
+        end if
     
         While (CountODOO <= Nb_Of_Rows_ODOO And ((Not found) Or (found And missingQt = False)))
             If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
@@ -193,23 +196,23 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
 
                 If (InStr(1, "" & exportWS.Range("E" & CountODOO).value, sapWS.Range("C" & CountSAP).value) > 0) _
                 And (exportWS.Range("F" & CountODOO).value = CLng(sapWS.Range("D" & CountSAP).value)) _
-                And sapWS.Range("G" & CountSAP).value <> "" Then
+                And sapWS.Range("X" & CountSAP).value <> "" Then
                 
                     'Maximum déposable = Quantité initiale demandée - Quantité déjà ajoutée en reception
                     MaxDrop = odooWS.Range("G" & CountODOO).value - exportWS.Range("C" & CountODOO).value
                     
                     'Si la quantité déposable max est plus grande que la quantité livrée sur SAP, on ajoute toutes les pièces de SAP
-                    If (MaxDrop >= sapWS.Range("G" & CountSAP).value) _
+                    If (MaxDrop >= sapWS.Range("X" & CountSAP).value) _
                     And (MaxDrop <> 0) Then
-                        exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + sapWS.Range("G" & CountSAP).value
-                        sapWS.Range("G" & CountSAP).value = 0
+                        exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + sapWS.Range("X" & CountSAP).value
+                        sapWS.Range("X" & CountSAP).value = 0
                         exportWS.Range("G" & CountODOO).value = "Reception"
                     
                     'Si la quantité déposable max est plus petite que la quantité livrée sur SAP, on ajoute qu'une partie des pièces de SAP
-                    ElseIf (MaxDrop < sapWS.Range("G" & CountSAP).value) _
+                    ElseIf (MaxDrop < sapWS.Range("X" & CountSAP).value) _
                     And (MaxDrop <> 0) Then
                         exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + MaxDrop
-                        sapWS.Range("G" & CountSAP).value = sapWS.Range("G" & CountSAP).value - MaxDrop
+                        sapWS.Range("X" & CountSAP).value = sapWS.Range("X" & CountSAP).value - MaxDrop
                         exportWS.Range("G" & CountODOO).value = "Reception"
                     End If
                     
@@ -233,9 +236,9 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
             reportWS.Range("B" & countREPORT).value = sapWS.Range("D" & CountSAP).value
             reportWS.Range("C" & countREPORT).value = ex2
             reportWS.Range("D" & countREPORT).value = sapWS.Range("C" & CountSAP).value
-            reportWS.Range("E" & countREPORT).value = sapWS.Range("G" & CountSAP).value
+            reportWS.Range("E" & countREPORT).value = sapWS.Range("X" & CountSAP).value
             countREPORT = countREPORT + 1
-        ElseIf (sapWS.Range("G" & CountSAP).value > 0 And deliveryTarget = True) Then
+        ElseIf (sapWS.Range("X" & CountSAP).value > 0 And deliveryTarget = True) Then
             '#########################################
             '## Mis à jour du rapport pour ex1      ##
             '#########################################
@@ -243,7 +246,7 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
             reportWS.Range("B" & countREPORT).value = exportWS.Range("F" & foundPosition).value
             reportWS.Range("C" & countREPORT).value = ex1 'quantité manquante
             reportWS.Range("D" & countREPORT).value = sapWS.Range("C" & CountSAP).value
-            reportWS.Range("E" & countREPORT).value = sapWS.Range("G" & CountSAP).value
+            reportWS.Range("E" & countREPORT).value = sapWS.Range("X" & CountSAP).value
             countREPORT = countREPORT + 1
         End If
         
@@ -306,6 +309,7 @@ Function Main(odooPath As String, sapPath As String, exportPath As String, repor
     '###############################################
     
     sapWS.Range("W1").value = "Type de livraison"
+    sapWS.Range("X1").EntireColumn.Delete
     
     
     exportWB.SaveAs exportPath
