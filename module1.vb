@@ -2,13 +2,16 @@ Sub launchOnLocalDrive()
 
     Dim mainDir As String
     mainDir = Application.ActiveWorkbook.Path & "\"
-    
-    Main mainDir & "\ODOO.XLS" _
+    Dim feedback As Boolean
+
+    feedback = Main(mainDir & "\ODOO.XLS" _
     , mainDir & "SAP.XLSX" _
     , mainDir & "99 incomeForOdoo.xlsx" _
     , mainDir & "99 executionReport.xlsx" _
     , mainDir & "centralTime.xlsx" _
-    , mainDir & "99 tempTime.xlsx"
+    , mainDir & "99 tempTime.xlsx")
+
+    MsgBox (feedback)
 
 End Sub
 
@@ -24,7 +27,7 @@ Sub test()
 End Sub
 
 
-Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String, centralSchedulePath As String, tempSchedulePath As String)
+Function Main(odooPath As String, sapPath As String, exportPath As String, reportPath As String, centralSchedulePath As String, tempSchedulePath As String) As Boolean
     Application.DisplayAlerts = False
     
     'General Variables
@@ -61,7 +64,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Set exportWS = exportWB.Worksheets(1)
     Set reportWS = reportWB.Worksheets(1)
     Set tempScheduleWS = tempScheduleWB.Worksheets(1)
-    tempScheduleWS.name = "Dates"
+    tempScheduleWS.Name = "Dates"
     Set odooWS = odooWB.Sheets(1)
     Set sapWS = sapWB.Sheets(1)
     Set centralScheduleWS = centralScheduleWB.Sheets(1)
@@ -102,6 +105,8 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     Dim NewLastTime As Date
     Dim arrayLastTime() As Variant
     Dim arrayNewTime() As Variant
+    Dim activityCheckecker As Boolean
+    activityCheckecker = False
     
     CountSAP = 2
     CountODOO = 2
@@ -176,36 +181,49 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
         arrayNewTime(2, shopPosition) = Format(WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime), "dd.mm.yyyy")
         arrayNewTime(3, shopPosition) = WorksheetFunction.Max(deliveryLineTime, lastUpdateTime, newUpdateTime)
           
+        if sapWS.Range("X" & CountSAP).value = 0 Then   
+            sapWS.Range("X" & CountSAP).value = sapWS.Range("G" & CountSAP).value
+        end if
     
         While (CountODOO <= Nb_Of_Rows_ODOO And ((Not found) Or (found And missingQt = False)))
             If (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
             And deliveryTarget = True Then
                 
+                'On indique sur la ligne de livraison du fichier SAP que l'article est une nouvelle livraison
+                sapWS.Range("W" & CountSAP) = "Nouvelle livraison sur le magasin"
+
+                activityCheckecker = True
+
                 If (InStr(1, "" & exportWS.Range("E" & CountODOO).value, sapWS.Range("C" & CountSAP).value) > 0) _
                 And (exportWS.Range("F" & CountODOO).value = CLng(sapWS.Range("D" & CountSAP).value)) _
-                And sapWS.Range("G" & CountSAP).value <> "" Then
+                And sapWS.Range("X" & CountSAP).value <> "" Then
                 
                     'Maximum déposable = Quantité initiale demandée - Quantité déjà ajoutée en reception
                     MaxDrop = odooWS.Range("G" & CountODOO).value - exportWS.Range("C" & CountODOO).value
                     
                     'Si la quantité déposable max est plus grande que la quantité livrée sur SAP, on ajoute toutes les pièces de SAP
-                    If (MaxDrop >= sapWS.Range("G" & CountSAP).value) _
+                    If (MaxDrop >= sapWS.Range("X" & CountSAP).value) _
                     And (MaxDrop <> 0) Then
-                        exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + sapWS.Range("G" & CountSAP).value
-                        sapWS.Range("G" & CountSAP).value = 0
+                        exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + sapWS.Range("X" & CountSAP).value
+                        sapWS.Range("X" & CountSAP).value = 0
                         exportWS.Range("G" & CountODOO).value = "Reception"
                     
                     'Si la quantité déposable max est plus petite que la quantité livrée sur SAP, on ajoute qu'une partie des pièces de SAP
-                    ElseIf (MaxDrop < sapWS.Range("G" & CountSAP).value) _
+                    ElseIf (MaxDrop < sapWS.Range("X" & CountSAP).value) _
                     And (MaxDrop <> 0) Then
                         exportWS.Range("C" & CountODOO).value = exportWS.Range("C" & CountODOO).value + MaxDrop
-                        sapWS.Range("G" & CountSAP).value = sapWS.Range("G" & CountSAP).value - MaxDrop
+                        sapWS.Range("X" & CountSAP).value = sapWS.Range("X" & CountSAP).value - MaxDrop
                         exportWS.Range("G" & CountODOO).value = "Reception"
                     End If
                     
                     found = True
                     foundPosition = CountODOO
                 End If
+            ElseIf (CheckForErrors(sapWS.Range("D" & CountSAP).value) <> -1) _
+            And deliveryTarget = False Then
+                'On indique sur la ligne de livraison du fichier SAP que l'article appartient à une livraison précédente
+                sapWS.Range("W" & CountSAP) = "Livraison présente sur rapport précédent"
+
             End If
             CountODOO = CountODOO + 1
         Wend
@@ -218,9 +236,9 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
             reportWS.Range("B" & countREPORT).value = sapWS.Range("D" & CountSAP).value
             reportWS.Range("C" & countREPORT).value = ex2
             reportWS.Range("D" & countREPORT).value = sapWS.Range("C" & CountSAP).value
-            reportWS.Range("E" & countREPORT).value = sapWS.Range("G" & CountSAP).value
+            reportWS.Range("E" & countREPORT).value = sapWS.Range("X" & CountSAP).value
             countREPORT = countREPORT + 1
-        ElseIf (sapWS.Range("G" & CountSAP).value > 0 And deliveryTarget = True) Then
+        ElseIf (sapWS.Range("X" & CountSAP).value > 0 And deliveryTarget = True) Then
             '#########################################
             '## Mis à jour du rapport pour ex1      ##
             '#########################################
@@ -228,7 +246,7 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
             reportWS.Range("B" & countREPORT).value = exportWS.Range("F" & foundPosition).value
             reportWS.Range("C" & countREPORT).value = ex1 'quantité manquante
             reportWS.Range("D" & countREPORT).value = sapWS.Range("C" & CountSAP).value
-            reportWS.Range("E" & countREPORT).value = sapWS.Range("G" & CountSAP).value
+            reportWS.Range("E" & countREPORT).value = sapWS.Range("X" & CountSAP).value
             countREPORT = countREPORT + 1
         End If
         
@@ -285,18 +303,30 @@ Sub Main(odooPath As String, sapPath As String, exportPath As String, reportPath
     'Si tests local, sauvegarde sur le central schedule. Si fonctionnement avec RPA, ligne à commenter
     'centralScheduleWS.Range("A1").Resize(UBound(arrayNewTime, 1), UBound(arrayNewTime, 2)) = arrayNewTime
     
+    
+    '###############################################
+    '## Complément d'information sur fihiers SAP   #
+    '###############################################
+    
+    sapWS.Range("W1").value = "Type de livraison"
+    sapWS.Range("X1").EntireColumn.Delete
+    
+    
     exportWB.SaveAs exportPath
     reportWB.SaveAs reportPath
     tempScheduleWB.SaveAs tempSchedulePath
     exportWB.Close False
     reportWB.Close False
     odooWB.Close False
-    sapWB.Close False
+    sapWB.Close True
     centralScheduleWB.Close False 'True si TESTS local, False si fonctionnement avec RPA
     tempScheduleWB.Close False
     
     Application.DisplayAlerts = True
-End Sub
+
+    Main = activityCheckecker
+
+End Function
 
 Function CheckForErrors(value As String) As Long
 
@@ -322,4 +352,6 @@ in_array = False
          Next j
     Next i
 End Function
+
+
 
